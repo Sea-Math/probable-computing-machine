@@ -1,15 +1,7 @@
 {
-  "version": 2,
-  "buildCommand": "npm run build",
   "functions": {
     "api/index.ts": {
-      "includeFiles": "public/**,config/**"
+      "maxDuration": 60
     }
-  },
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/index.ts"
-    }
-  ]
+  }
 }

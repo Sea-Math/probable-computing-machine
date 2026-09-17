@@ -2,47 +2,47 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import staticPlugin from "@fastify/static";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { musicRoutes } from "./routes/music";
 import { youtubeRoutes } from "./routes/youtube";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+export const fastify = Fastify({ logger: true });
 
-export const fastify = Fastify({ logger: { level: "info" } });
+let registered = false;
+let registrationPromise: Promise<void> | undefined;
 
-let initialized = false;
-
-export async function buildApp() {
-  if (initialized) return fastify;
-
-  await fastify.register(cors, { origin: true });
-  if (!process.env.VERCEL) {
-    await fastify.register(staticPlugin, {
-      root: path.join(__dirname, "public"),
-      wildcard: false,
-    });
+export async function buildApp(): Promise<typeof fastify> {
+  if (registered) return fastify;
+  if (registrationPromise) {
+    await registrationPromise;
+    return fastify;
   }
-  await fastify.register(musicRoutes);
-  await fastify.register(youtubeRoutes);
 
-  fastify.setNotFoundHandler((req, res) => {
-    res.code(404).send({
-      error: `${req.url} was not found on this server. Check the spelling and try again.`,
+  registrationPromise = (async () => {
+    await fastify.register(cors, { origin: true });
+    await fastify.register(staticPlugin, {
+      root: path.join(process.cwd(), "public"),
+      wildcard: false,
+      decorateReply: false,
     });
-  });
+    await fastify.register(musicRoutes);
+    await fastify.register(youtubeRoutes);
 
-  initialized = true;
-  await fastify.ready();
+    fastify.setNotFoundHandler((request, reply) => {
+      reply.code(404).send({
+        error: `${request.url} was not found on this server. Check the spelling and try again.`,
+      });
+    });
+
+    await fastify.ready();
+    registered = true;
+  })();
+
+  try {
+    await registrationPromise;
+  } catch (error) {
+    registrationPromise = undefined;
+    throw error;
+  }
+
   return fastify;
-}
-
-if (!process.env.VERCEL) {
-  const usePort = Number(process.env.MUSIC_PORT) || 2010;
-  buildApp()
-    .then(() => fastify.listen({ port: usePort, host: "0.0.0.0" }))
-    .then(() => console.log("x8music running on http://localhost:" + usePort))
-    .catch((err) => {
-      fastify.log.error(err);
-      process.exit(1);
-    });
 }
