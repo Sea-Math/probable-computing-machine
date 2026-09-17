@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { buildApp } from "../index";
 
-let readyPromise: Promise<ReturnType<typeof buildApp>> | undefined;
+let readyPromise: ReturnType<typeof buildApp> | undefined;
 
 export default async function handler(
   req: IncomingMessage,
