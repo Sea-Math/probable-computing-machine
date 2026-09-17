@@ -16,10 +16,12 @@ export async function buildApp() {
   if (initialized) return fastify;
 
   await fastify.register(cors, { origin: true });
-  await fastify.register(staticPlugin, {
-    root: path.join(__dirname, "public"),
-    wildcard: false,
-  });
+  if (!process.env.VERCEL) {
+    await fastify.register(staticPlugin, {
+      root: path.join(__dirname, "public"),
+      wildcard: false,
+    });
+  }
   await fastify.register(musicRoutes);
   await fastify.register(youtubeRoutes);
 
